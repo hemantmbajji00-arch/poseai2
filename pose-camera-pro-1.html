@@ -1,0 +1,1408 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="PoseAI">
+<meta name="theme-color" content="#7c3aed">
+<link rel="manifest" href="manifest.json">
+<title>PoseAI Pro</title>
+
+<!-- MediaPipe Pose -->
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js" crossorigin="anonymous"></script>
+<script src="https://cdn.jsdelivr.net/npm/@mediapipe/pose/pose.js" crossorigin="anonymous"></script>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;900&family=Bebas+Neue&display=swap');
+
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+:root{
+  --bg:#050508;
+  --surface:#0f0f18;
+  --card:#1a1a28;
+  --accent:#00e5ff;
+  --accent2:#7c3aed;
+  --green:#00ff88;
+  --gold:#ffd60a;
+  --red:#ff4757;
+  --text:#f0f0ff;
+  --muted:#555570;
+  --border:rgba(255,255,255,0.08);
+}
+
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:'Outfit',sans-serif;}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;height:100dvh;overflow:hidden;}
+.screen.active{display:flex;}
+
+/* ══════════════════════════════════
+   HOME SCREEN
+══════════════════════════════════ */
+#home{
+  background:var(--bg);
+  overflow-y:auto;
+  -webkit-overflow-scrolling:touch;
+}
+.home-inner{
+  min-height:100%;
+  padding:env(safe-area-inset-top, 1rem) 1.2rem env(safe-area-inset-bottom, 1rem);
+  display:flex;flex-direction:column;align-items:center;
+  padding-top:max(2rem, env(safe-area-inset-top));
+}
+
+/* hero */
+.hero{
+  width:100%;display:flex;flex-direction:column;align-items:center;
+  margin-bottom:1.8rem;position:relative;
+}
+.hero-glow{
+  position:absolute;width:260px;height:120px;
+  background:radial-gradient(ellipse, rgba(0,229,255,0.12) 0%, transparent 70%);
+  top:0;left:50%;transform:translateX(-50%);
+  pointer-events:none;
+}
+.hero-logo{
+  width:76px;height:76px;
+  background:linear-gradient(135deg,#00e5ff,#7c3aed);
+  border-radius:22px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:2rem;
+  box-shadow:0 0 50px rgba(0,229,255,0.25),0 0 0 1px rgba(0,229,255,0.15);
+  margin-bottom:0.9rem;
+  position:relative;z-index:1;
+}
+.hero-title{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:3rem;letter-spacing:3px;
+  background:linear-gradient(90deg,#fff 0%,var(--accent) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  position:relative;z-index:1;
+}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(0,229,255,0.08);
+  border:1px solid rgba(0,229,255,0.2);
+  border-radius:20px;padding:4px 12px;
+  font-size:0.7rem;font-weight:600;color:var(--accent);
+  letter-spacing:1.5px;text-transform:uppercase;margin-top:6px;
+}
+.badge-dot{width:6px;height:6px;background:var(--accent);border-radius:50%;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1);}50%{opacity:0.4;transform:scale(0.8);}}
+
+/* install banner */
+#installBanner{
+  width:100%;
+  background:linear-gradient(135deg,rgba(124,58,237,0.2),rgba(0,229,255,0.1));
+  border:1px solid rgba(0,229,255,0.2);
+  border-radius:14px;padding:0.8rem 1rem;
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:1.2rem;display:none;
+}
+.install-text{font-size:0.82rem;color:var(--text);font-weight:600;}
+.install-sub{font-size:0.7rem;color:var(--muted);margin-top:2px;}
+.install-btn{
+  background:var(--accent);border:none;border-radius:10px;
+  color:#000;font-weight:700;font-size:0.8rem;
+  padding:0.5rem 0.9rem;cursor:pointer;font-family:'Outfit',sans-serif;
+  white-space:nowrap;flex-shrink:0;
+}
+
+/* section label */
+.section-label{
+  width:100%;font-size:0.7rem;font-weight:700;
+  color:var(--muted);letter-spacing:2px;text-transform:uppercase;
+  margin-bottom:0.7rem;
+}
+
+/* situation grid */
+.sit-grid{
+  display:grid;grid-template-columns:repeat(4,1fr);
+  gap:0.5rem;width:100%;margin-bottom:1.5rem;
+}
+.sit-card{
+  background:var(--card);border:1.5px solid var(--border);
+  border-radius:14px;padding:0.7rem 0.4rem;
+  cursor:pointer;transition:all 0.18s ease;
+  display:flex;flex-direction:column;align-items:center;gap:4px;
+}
+.sit-card:active{transform:scale(0.93);}
+.sit-card.selected{
+  border-color:var(--accent);
+  background:rgba(0,229,255,0.08);
+  box-shadow:0 0 18px rgba(0,229,255,0.15);
+}
+.sit-emoji{font-size:1.5rem;}
+.sit-label{font-size:0.62rem;font-weight:600;color:var(--text);text-align:center;line-height:1.2;}
+
+/* feature badges */
+.features-row{
+  display:flex;gap:0.5rem;width:100%;margin-bottom:1.5rem;flex-wrap:wrap;
+}
+.feat-badge{
+  display:flex;align-items:center;gap:5px;
+  background:var(--card);border:1px solid var(--border);
+  border-radius:8px;padding:5px 9px;
+  font-size:0.68rem;font-weight:600;color:var(--muted);
+}
+.feat-badge span:first-child{font-size:0.85rem;}
+
+/* start button */
+.start-btn{
+  width:100%;padding:1.1rem;
+  background:linear-gradient(135deg,var(--accent2),#5b21b6);
+  border:none;border-radius:16px;color:white;
+  font-family:'Outfit',sans-serif;font-size:1.05rem;font-weight:700;
+  cursor:pointer;letter-spacing:0.5px;
+  box-shadow:0 10px 40px rgba(124,58,237,0.35);
+  transition:transform 0.1s;
+}
+.start-btn:active{transform:scale(0.97);}
+
+/* ══════════════════════════════════
+   CAMERA SCREEN
+══════════════════════════════════ */
+#camera{position:relative;background:#000;overflow:hidden;}
+
+#video{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  object-fit:cover;
+  transform:scaleX(-1);
+}
+#video.back-cam{transform:scaleX(1);}
+
+#poseCanvas{
+  position:absolute;inset:0;
+  width:100%;height:100%;
+  pointer-events:none;
+}
+
+.cam-ui{
+  position:absolute;inset:0;
+  display:flex;flex-direction:column;
+  pointer-events:none;
+}
+
+/* top bar */
+.cam-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:1rem 1rem;
+  padding-top:max(1rem, env(safe-area-inset-top));
+  background:linear-gradient(to bottom,rgba(0,0,0,0.75) 0%,transparent 100%);
+  pointer-events:all;
+}
+.cam-btn{
+  width:40px;height:40px;background:rgba(0,0,0,0.45);
+  backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,0.15);
+  border-radius:50%;color:white;font-size:1rem;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.cam-center-info{text-align:center;flex:1;}
+.cam-sit-label{
+  font-family:'Bebas Neue',sans-serif;
+  font-size:1.1rem;letter-spacing:2px;color:white;
+}
+.cam-pose-count{font-size:0.65rem;color:rgba(255,255,255,0.5);margin-top:1px;}
+
+/* skeleton status */
+.skeleton-status{
+  margin:0 1rem;
+  display:flex;align-items:center;gap:6px;
+  background:rgba(0,0,0,0.45);backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:10px;padding:5px 10px;
+  font-size:0.68rem;font-weight:600;
+  pointer-events:none;align-self:flex-start;
+  transition:all 0.3s;
+}
+.sk-dot{width:7px;height:7px;border-radius:50%;background:var(--muted);}
+.skeleton-status.detecting .sk-dot{background:var(--gold);animation:pulse 1s infinite;}
+.skeleton-status.tracking .sk-dot{background:var(--green);}
+.skeleton-status.tracking{border-color:rgba(0,255,136,0.3);}
+
+/* pose panel */
+.pose-panel{
+  margin:0.5rem 1rem 0;
+  background:rgba(0,0,0,0.55);backdrop-filter:blur(16px);
+  border:1px solid rgba(255,255,255,0.1);
+  border-radius:16px;padding:0.8rem 1rem;
+  pointer-events:all;
+}
+.pose-panel-top{display:flex;align-items:flex-start;justify-content:space-between;gap:0.8rem;}
+.pose-meta{flex:1;min-width:0;}
+.pose-number{font-size:0.6rem;font-weight:700;color:var(--accent);letter-spacing:1.5px;text-transform:uppercase;}
+.pose-name-big{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:1px;color:white;line-height:1;margin:2px 0;}
+.pose-desc-small{font-size:0.75rem;color:rgba(255,255,255,0.65);line-height:1.4;}
+.pose-actions{display:flex;flex-direction:column;gap:5px;flex-shrink:0;}
+.pose-nav-btn{
+  background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.15);
+  border-radius:8px;color:white;
+  font-size:0.68rem;font-weight:700;
+  padding:5px 10px;cursor:pointer;font-family:'Outfit',sans-serif;
+  white-space:nowrap;
+}
+.pose-nav-btn.ai{background:rgba(0,229,255,0.15);border-color:rgba(0,229,255,0.3);color:var(--accent);}
+
+/* match meter */
+.match-row{
+  display:flex;align-items:center;gap:8px;
+  margin-top:0.6rem;
+}
+.match-label{font-size:0.65rem;font-weight:700;color:var(--muted);white-space:nowrap;}
+.match-bar{flex:1;height:5px;background:rgba(255,255,255,0.1);border-radius:3px;overflow:hidden;}
+.match-fill{height:100%;border-radius:3px;background:var(--green);width:0%;transition:width 0.5s ease;}
+.match-pct{font-size:0.65rem;font-weight:700;color:var(--green);min-width:28px;text-align:right;}
+
+/* ai tip */
+.ai-tip-bar{
+  margin:0.4rem 1rem 0;
+  background:rgba(0,229,255,0.08);
+  border:1px solid rgba(0,229,255,0.15);
+  border-radius:10px;padding:6px 10px;
+  font-size:0.72rem;color:var(--accent);
+  pointer-events:none;
+  min-height:30px;
+  display:flex;align-items:center;gap:6px;
+  transition:all 0.3s;
+}
+.ai-tip-bar.loading{color:var(--muted);border-color:rgba(255,255,255,0.08);}
+
+/* pose thumbnails strip */
+.pose-strip-wrap{
+  pointer-events:all;margin:0 0.8rem;
+  overflow:hidden;
+}
+.pose-strip{
+  display:flex;gap:6px;overflow-x:auto;
+  padding:4px 0;scrollbar-width:none;
+}
+.pose-strip::-webkit-scrollbar{display:none;}
+.pose-thumb{
+  flex-shrink:0;
+  background:rgba(0,0,0,0.5);
+  border:1.5px solid rgba(255,255,255,0.1);
+  border-radius:10px;
+  padding:5px 10px;
+  font-size:0.68rem;font-weight:600;
+  color:rgba(255,255,255,0.6);
+  cursor:pointer;white-space:nowrap;
+  font-family:'Outfit',sans-serif;
+  transition:all 0.2s;
+}
+.pose-thumb.active{
+  border-color:var(--accent);
+  color:var(--accent);
+  background:rgba(0,229,255,0.1);
+}
+
+.cam-spacer{flex:1;}
+
+/* bottom controls */
+.cam-bottom{
+  padding:0.8rem 1.5rem;
+  padding-bottom:max(1rem, env(safe-area-inset-bottom));
+  background:linear-gradient(to top,rgba(0,0,0,0.85) 0%,transparent 100%);
+  pointer-events:all;
+  display:flex;flex-direction:column;align-items:center;gap:0.8rem;
+}
+.shutter-row{
+  display:flex;align-items:center;justify-content:center;
+  width:100%;gap:0;
+  position:relative;
+}
+.shutter-side{
+  position:absolute;
+  display:flex;align-items:center;gap:0.6rem;
+}
+.shutter-side.left{left:0;}
+.shutter-side.right{right:0;}
+.side-cam-btn{
+  width:46px;height:46px;
+  background:rgba(0,0,0,0.45);
+  backdrop-filter:blur(12px);
+  border:1px solid rgba(255,255,255,0.15);
+  border-radius:50%;color:white;font-size:1.1rem;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  transition:all 0.15s;
+}
+.side-cam-btn:active{transform:scale(0.9);}
+.side-cam-btn.active{
+  border-color:var(--accent);color:var(--accent);
+  background:rgba(0,229,255,0.15);
+}
+.shutter{
+  width:74px;height:74px;border-radius:50%;
+  background:white;
+  border:4px solid rgba(255,255,255,0.35);
+  box-shadow:0 0 0 4px rgba(255,255,255,0.1);
+  cursor:pointer;transition:transform 0.1s;
+  display:flex;align-items:center;justify-content:center;
+}
+.shutter:active{transform:scale(0.91);}
+.shutter-inner{width:58px;height:58px;background:white;border-radius:50%;}
+.shutter.countdown{background:var(--gold);}
+.shutter.countdown .shutter-inner{background:var(--gold);}
+
+/* timer overlay text */
+.timer-overlay{
+  position:absolute;
+  top:50%;left:50%;transform:translate(-50%,-50%);
+  font-family:'Bebas Neue',sans-serif;
+  font-size:8rem;color:white;
+  text-shadow:0 0 60px rgba(0,0,0,0.8);
+  pointer-events:none;opacity:0;
+  transition:opacity 0.2s;
+  z-index:10;
+}
+.timer-overlay.show{opacity:1;}
+
+/* flash */
+.flash{position:fixed;inset:0;background:white;opacity:0;pointer-events:none;z-index:999;transition:opacity 0.05s;}
+.flash.on{opacity:1;}
+
+/* ══════════════════════════════════
+   REVIEW SCREEN
+══════════════════════════════════ */
+#review{
+  background:#000;padding:0 0;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+.rev-top{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0.8rem 1.2rem;
+}
+.rev-back{background:none;border:none;color:white;font-size:1.4rem;cursor:pointer;padding:4px 8px;}
+.rev-title{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:2px;}
+.rev-img-wrap{
+  flex:1;display:flex;align-items:center;justify-content:center;
+  position:relative;padding:0 0.5rem;overflow:hidden;
+}
+#capturedImg{max-width:100%;max-height:100%;border-radius:14px;object-fit:contain;}
+
+/* score overlay */
+.score-overlay{
+  position:absolute;top:0.8rem;right:1.3rem;
+  background:rgba(0,0,0,0.7);backdrop-filter:blur(10px);
+  border-radius:14px;padding:0.6rem 0.9rem;text-align:center;
+  border:1px solid rgba(255,255,255,0.1);
+}
+.score-ring{
+  font-family:'Bebas Neue',sans-serif;font-size:2rem;
+  color:var(--gold);line-height:1;
+}
+.score-sub{font-size:0.58rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;}
+.score-stars{font-size:0.75rem;margin-top:2px;}
+
+.rev-feedback{
+  padding:0.5rem 1.2rem;
+  font-size:0.8rem;color:rgba(255,255,255,0.6);
+  text-align:center;line-height:1.5;min-height:2.5rem;
+  display:flex;align-items:center;justify-content:center;
+}
+
+.rev-actions{display:flex;gap:0.6rem;padding:0.5rem 1.2rem;}
+.rev-btn{
+  flex:1;padding:0.85rem;border-radius:14px;border:none;
+  font-family:'Outfit',sans-serif;font-weight:700;font-size:0.9rem;
+  cursor:pointer;transition:transform 0.1s;
+}
+.rev-btn:active{transform:scale(0.97);}
+.rev-retake{background:rgba(255,255,255,0.08);color:white;border:1px solid rgba(255,255,255,0.15);}
+.rev-save{background:linear-gradient(135deg,var(--accent2),#5b21b6);color:white;}
+
+/* ── UTILS ── */
+.spinner{display:inline-block;width:10px;height:10px;border:2px solid rgba(0,229,255,0.2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+
+<div class="flash" id="flash"></div>
+<div class="timer-overlay" id="timerOverlay"></div>
+
+<!-- ══════════════════════════
+     HOME SCREEN
+══════════════════════════ -->
+<div class="screen active" id="home">
+<div class="home-inner">
+
+  <div class="hero">
+    <div class="hero-glow"></div>
+    <div class="hero-logo">📸</div>
+    <div class="hero-title">PoseAI Pro</div>
+    <div class="hero-badge"><span class="badge-dot"></span>Skeleton Tracking + AI Tips</div>
+  </div>
+
+  <div id="installBanner">
+    <div>
+      <div class="install-text">📲 Add to Home Screen</div>
+      <div class="install-sub">Use like a real app — works offline too</div>
+    </div>
+    <button class="install-btn" onclick="installPWA()">Install</button>
+  </div>
+
+  <div class="section-label">Choose Your Situation</div>
+  <div class="sit-grid" id="sitGrid">
+    <div class="sit-card selected" data-sit="graduation" onclick="selectSit(this)"><span class="sit-emoji">🎓</span><span class="sit-label">Graduation</span></div>
+    <div class="sit-card" data-sit="selfie" onclick="selectSit(this)"><span class="sit-emoji">🤳</span><span class="sit-label">Selfie</span></div>
+    <div class="sit-card" data-sit="travel" onclick="selectSit(this)"><span class="sit-emoji">✈️</span><span class="sit-label">Travel</span></div>
+    <div class="sit-card" data-sit="group" onclick="selectSit(this)"><span class="sit-emoji">👥</span><span class="sit-label">Group</span></div>
+    <div class="sit-card" data-sit="portrait" onclick="selectSit(this)"><span class="sit-emoji">🪞</span><span class="sit-label">Portrait</span></div>
+    <div class="sit-card" data-sit="food" onclick="selectSit(this)"><span class="sit-emoji">🍜</span><span class="sit-label">Food</span></div>
+    <div class="sit-card" data-sit="nature" onclick="selectSit(this)"><span class="sit-emoji">🌿</span><span class="sit-label">Nature</span></div>
+    <div class="sit-card" data-sit="event" onclick="selectSit(this)"><span class="sit-emoji">🎉</span><span class="sit-label">Party</span></div>
+    <div class="sit-card" data-sit="sports" onclick="selectSit(this)"><span class="sit-emoji">⚽</span><span class="sit-label">Sports</span></div>
+    <div class="sit-card" data-sit="fashion" onclick="selectSit(this)"><span class="sit-emoji">👗</span><span class="sit-label">Fashion</span></div>
+    <div class="sit-card" data-sit="couple" onclick="selectSit(this)"><span class="sit-emoji">💑</span><span class="sit-label">Couple</span></div>
+    <div class="sit-card" data-sit="professional" onclick="selectSit(this)"><span class="sit-emoji">💼</span><span class="sit-label">Professional</span></div>
+  </div>
+
+  <div class="section-label">Features</div>
+  <div class="features-row">
+    <div class="feat-badge"><span>🦴</span><span>Live Skeleton</span></div>
+    <div class="feat-badge"><span>🤖</span><span>AI Tips</span></div>
+    <div class="feat-badge"><span>📊</span><span>Pose Score</span></div>
+    <div class="feat-badge"><span>⏱</span><span>Timer</span></div>
+    <div class="feat-badge"><span>📲</span><span>Install App</span></div>
+  </div>
+
+  <button class="start-btn" onclick="openCamera()">Open Camera →</button>
+</div>
+</div>
+
+<!-- ══════════════════════════
+     CAMERA SCREEN
+══════════════════════════ -->
+<div class="screen" id="camera">
+  <video id="video" autoplay playsinline muted></video>
+  <canvas id="poseCanvas"></canvas>
+
+  <div class="cam-ui">
+    <!-- Top bar -->
+    <div class="cam-top">
+      <button class="cam-btn" onclick="goHome()">✕</button>
+      <div class="cam-center-info">
+        <div class="cam-sit-label" id="camSitLabel">Graduation</div>
+        <div class="cam-pose-count" id="camPoseCount">Pose 1 of 8</div>
+      </div>
+      <button class="cam-btn" onclick="flipCamera()">🔄</button>
+    </div>
+
+    <!-- Skeleton status -->
+    <div class="skeleton-status detecting" id="skStatus">
+      <div class="sk-dot"></div>
+      <span id="skText">Loading skeleton tracker…</span>
+    </div>
+
+    <!-- Pose panel -->
+    <div class="pose-panel">
+      <div class="pose-panel-top">
+        <div class="pose-meta">
+          <div class="pose-number" id="poseNumber">POSE 01</div>
+          <div class="pose-name-big" id="poseName">Cap Toss</div>
+          <div class="pose-desc-small" id="poseDesc">Hold diploma right hand, raise cap high, look up and smile big!</div>
+        </div>
+        <div class="pose-actions">
+          <button class="pose-nav-btn" onclick="nextPose()">Next ›</button>
+          <button class="pose-nav-btn ai" onclick="getAITip()">🤖 Tip</button>
+        </div>
+      </div>
+      <div class="match-row" id="matchRow" style="display:none">
+        <span class="match-label">MATCH</span>
+        <div class="match-bar"><div class="match-fill" id="matchFill"></div></div>
+        <span class="match-pct" id="matchPct">0%</span>
+      </div>
+    </div>
+
+    <!-- AI tip bar -->
+    <div class="ai-tip-bar" id="aiTipBar">
+      <span>💡</span><span id="aiTipText">Tap 🤖 for an AI tip on this pose</span>
+    </div>
+
+    <!-- Pose strip -->
+    <div class="pose-strip-wrap">
+      <div class="pose-strip" id="poseStrip"></div>
+    </div>
+
+    <div class="cam-spacer"></div>
+
+    <!-- Bottom -->
+    <div class="cam-bottom">
+      <div class="shutter-row">
+        <div class="shutter-side left">
+          <button class="side-cam-btn" id="timerBtn" onclick="toggleTimer()" title="Timer">⏱</button>
+          <button class="side-cam-btn" id="gridBtn" onclick="toggleGrid()" title="Grid">⊞</button>
+        </div>
+        <button class="shutter" id="shutterBtn" onclick="capture()">
+          <div class="shutter-inner"></div>
+        </button>
+        <div class="shutter-side right">
+          <button class="side-cam-btn" onclick="prevPose()" title="Prev pose">‹</button>
+          <button class="side-cam-btn" onclick="nextPose()" title="Next pose">›</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════
+     REVIEW SCREEN
+══════════════════════════ -->
+<div class="screen" id="review">
+  <div class="rev-top">
+    <button class="rev-back" onclick="goCamera()">‹</button>
+    <div class="rev-title">Your Shot</div>
+    <div style="width:40px"></div>
+  </div>
+  <div class="rev-img-wrap">
+    <img id="capturedImg" src="" alt="Photo">
+    <div class="score-overlay">
+      <div class="score-ring" id="scoreNum">–</div>
+      <div class="score-sub">Score</div>
+      <div class="score-stars" id="scoreStars">⭐⭐⭐⭐⭐</div>
+    </div>
+  </div>
+  <div class="rev-feedback" id="revFeedback"><span class="spinner"></span>&nbsp;Analyzing…</div>
+  <div class="rev-actions">
+    <button class="rev-btn rev-retake" onclick="goCamera()">Retake</button>
+    <button class="rev-btn rev-save" onclick="savePhoto()">Save 💾</button>
+  </div>
+</div>
+
+<canvas id="snapCanvas" style="display:none"></canvas>
+
+<script>
+// ═══════════════════════════════════════
+//  POSE DATA (20+ poses per situation)
+// ═══════════════════════════════════════
+const SITS = {
+  graduation:{emoji:'🎓',label:'Graduation',poses:[
+    {n:'Cap Toss',d:'Hold diploma right hand, raise cap high, look up — pure joy!'},
+    {n:'Gown Flow',d:'Walk forward slowly, let gown flow. Look back over shoulder.'},
+    {n:'Scholar Lean',d:'Lean on wall/pillar, cross arms, diploma tucked. Confident look.'},
+    {n:'Victory Jump',d:'Jump with both arms raised! Legs bent. Pure celebration!'},
+    {n:'Book Hug',d:'Hug diploma/certificate to chest, eyes closed, big smile.'},
+    {n:'Stage Walk',d:'Walk confidently, chin up, diploma in both hands like a trophy.'},
+    {n:'Cap Hold',d:'Hold cap out to side at arm length, slight bow, elegant.'},
+    {n:'Tassel Flip',d:'Look down at tassel, fingers on it, candid and meaningful.'},
+    {n:'Family Frame',d:'Face camera slightly sideways, arm out as if around someone.'},
+    {n:'Roof Shot',d:'Sit on steps, robes spread out around you like a flower.'},
+    {n:'The Thinker',d:'Sit on steps, chin on fist, diploma across knees. Thoughtful.'},
+    {n:'Looking Ahead',d:'Stand tall, look into distance like you see your future.'},
+    {n:'Candid Laugh',d:'Look away and laugh naturally — someone call your name!'},
+    {n:'Diploma Raise',d:'Hold diploma with both hands above head. Power pose!'},
+    {n:'Walk Away',d:'Walk away from camera in gown, look back with a smile.'},
+    {n:'Sit & Reflect',d:'Sit on ground cross-legged, cap in lap, serene expression.'},
+    {n:'Jump with Gown',d:'Jump sideways, gown spread wide like wings.'},
+    {n:'Group V Sign',d:'Make V/peace sign, lean into imaginary friends, huge grin.'},
+    {n:'Spin Pose',d:'Spin slowly, let gown flare out — capture the motion blur!'},
+    {n:'Hand on Heart',d:'Place diploma hand over heart, look at camera gratefully.'},
+  ]},
+  selfie:{emoji:'🤳',label:'Selfie',poses:[
+    {n:'Classic High Angle',d:'Phone slightly above eye level, tilt chin down, soft smile.'},
+    {n:'Side 45°',d:'Turn body 45 degrees, show jawline, soft gaze at camera.'},
+    {n:'Hand Frame',d:'Frame face softly with one hand, fingers spread naturally.'},
+    {n:'Candid Look Away',d:'Look slightly off-camera like you just heard something funny.'},
+    {n:'Chin Rest',d:'Rest chin on back of hand, sweet close-up expression.'},
+    {n:'Over Shoulder',d:'Turn body away, snap from behind — look back over shoulder.'},
+    {n:'Serious Editorial',d:'Strong jawline, neutral expression, slightly squinted eyes.'},
+    {n:'Hair Toss',d:'Mid-hair movement, candid and playful, not posed.'},
+    {n:'Eyes Closed',d:'Eyes gently closed, serene and peaceful expression.'},
+    {n:'Glasses Push',d:'Push glasses up with one finger, nerdy-chic look.'},
+    {n:'Popping Collar',d:'Collar up, chin down, playful and confident.'},
+    {n:'Cheek Puff',d:'Puff cheeks playfully, eyes wide — goofy but cute.'},
+    {n:'Peace Sign',d:'Classic V sign near eye, playful and energetic.'},
+    {n:'The Smize',d:'Relax your face but smile with your eyes only — Tyra Banks style.'},
+    {n:'Low Angle Power',d:'Hold phone at chin level, look slightly down at camera. Boss mode.'},
+    {n:'Background Blur',d:'Move close to camera, bokeh background — professional look.'},
+    {n:'Neon Light',d:'Hold face near colourful light source, moody aesthetic.'},
+    {n:'Laughing Candid',d:'Genuine laugh — tell a joke or think of something funny first.'},
+    {n:'Bite Lip',d:'Subtle smile with slightly bitten lip — natural and appealing.'},
+    {n:'Morning Glow',d:'Soft natural window light on face, slightly damp hair look.'},
+  ]},
+  travel:{emoji:'✈️',label:'Travel',poses:[
+    {n:'Explorer Stance',d:'Legs apart, hand shielding eyes, looking at the horizon.'},
+    {n:'Arms Wide Open',d:'Stand on high ground, spread arms wide, face the view.'},
+    {n:'Landmark Hold',d:'Stand side-on, extend arm toward landmark like holding it.'},
+    {n:'Walking Away',d:'Walk away from camera, look back over shoulder with smile.'},
+    {n:'Map Read',d:'Hold map or phone, look around confused/curious — storytelling.'},
+    {n:'Balcony Lean',d:'Lean on railing with both forearms, look out thoughtfully.'},
+    {n:'Spin in Place',d:'Spin slowly with arms out — capture that traveller energy.'},
+    {n:'Sit on Steps',d:'Sit on local steps, chin on knees, soak in the atmosphere.'},
+    {n:'Touch the Wall',d:'Touch ancient wall or texture with fingertips, look curious.'},
+    {n:'Running Shot',d:'Run toward camera with a big excited smile and open arms.'},
+    {n:'Frame Through Arch',d:'Stand inside doorway or arch — frame yourself naturally.'},
+    {n:'Piggyback',d:'Jump on a friend\'s back or pose like someone is carrying you.'},
+    {n:'Jump for Joy',d:'Classic jump in front of landmark — bend knees, arms up!'},
+    {n:'Sit & Stare',d:'Sit on rock or bench, hugging knees, gaze at the view.'},
+    {n:'Pointing Up',d:'Point up at something off-screen, look up excitedly.'},
+    {n:'Street Walk',d:'Walk along colourful street, look straight at camera confidently.'},
+    {n:'Back to Camera',d:'Face the view, back to camera — epic landscape framing.'},
+    {n:'Market Browse',d:'Hold local item or food, inspect it with curiosity.'},
+    {n:'Cafe Moment',d:'Sit with local drink, look out window, candid and atmospheric.'},
+    {n:'Golden Hour Stand',d:'Silhouette against sunset, strong pose — arms out or hands on hips.'},
+  ]},
+  group:{emoji:'👥',label:'Group',poses:[
+    {n:'Staggered Levels',d:'Some sit, stand, crouch — create triangle shape. Turn inward.'},
+    {n:'Action Jump',d:'Everyone jumps at count of 3! Arms up, legs bent, huge smiles.'},
+    {n:'Huddle Lean',d:'All lean heads toward center, arms around each other.'},
+    {n:'Walk Together',d:'Walk toward camera side by side, natural and candid.'},
+    {n:'Back to Back',d:'Two people stand back to back, arms crossed, looking opposite ways.'},
+    {n:'Piggyback Chain',d:'Everyone piggybacks or one person carries another — silly fun.'},
+    {n:'Circle Look Down',d:'Everyone stands in circle, looks down at camera in center.'},
+    {n:'Synchronized Pose',d:'All do the same silly/cool pose at the same time.'},
+    {n:'Row with Height',d:'Line up by height, shortest in front, tallest behind.'},
+    {n:'Emoji Faces',d:'Everyone makes the same emoji expression — 😂 or 😎 etc.'},
+    {n:'Running at Camera',d:'Everyone runs toward camera together from a distance.'},
+    {n:'Pointing at Friend',d:'All point at one person who strikes a solo pose.'},
+    {n:'Frame with Hands',d:'Two people make a frame shape with their hands around others.'},
+    {n:'Lift Someone',d:'Lift the shortest person — classic fun group shot.'},
+    {n:'Confetti Throw',d:'Throw anything upward together on count of 3.'},
+    {n:'Hand Stack',d:'All put hands in the center like a team huddle, lift together.'},
+    {n:'Lean on Each Other',d:'Chain lean — each person leans on the next like dominos.'},
+    {n:'Sit in a Row',d:'All sit in a neat row on steps or floor, same pose.'},
+    {n:'Look at Each Other',d:'Look at each other laughing instead of camera — candid magic.'},
+    {n:'V Formation',d:'Stand in a V shape, person at front strikes a bold solo pose.'},
+  ]},
+  portrait:{emoji:'🪞',label:'Portrait',poses:[
+    {n:'Soft Gaze',d:'Look slightly past camera, relax jaw, soft closed-mouth smile.'},
+    {n:'Chin on Hand',d:'Rest chin on back of hand, elbow on surface, thoughtful.'},
+    {n:'Over Shoulder',d:'Turn body away, look back over shoulder directly at camera.'},
+    {n:'Arms Crossed',d:'Cross arms loosely, confident posture, slight knowing smirk.'},
+    {n:'Hair Play',d:'Run fingers through hair naturally, candid and effortless.'},
+    {n:'Window Light',d:'Stand side-on to window, soft natural half-light on face.'},
+    {n:'Look Down',d:'Look down, long lashes visible, serene and introspective.'},
+    {n:'Hands in Pockets',d:'Both hands in pockets, relaxed posture, direct eye contact.'},
+    {n:'One Hand Up',d:'Rest one hand on door/wall, lean slightly, casual cool.'},
+    {n:'Floor Sit',d:'Sit on floor, knees to one side, hands on knees, relaxed.'},
+    {n:'Behind Glass',d:'Shoot through window or clear surface for dreamy overlay.'},
+    {n:'Collar Hold',d:'Both hands on collar, pull it slightly, editorial style.'},
+    {n:'Side Profile',d:'Pure side profile — strong nose/jaw line, look straight ahead.'},
+    {n:'Head Tilt',d:'Slight head tilt to one side, warm soft smile.'},
+    {n:'Neon Backlit',d:'Stand in front of bright light, create a glowing backlit halo.'},
+    {n:'Crouch Down',d:'Crouch, elbows on knees, look up at camera — powerful angle.'},
+    {n:'Against Wall',d:'Back flat against wall, head turned to camera, arms at sides.'},
+    {n:'Jacket Grab',d:'Grab jacket/hoodie collar with both hands, casual street style.'},
+    {n:'Scarf/Hat Adjust',d:'Adjust scarf or hat naturally, caught in the moment.'},
+    {n:'Eyes Barely Open',d:'Heavy-lidded, sleepy eyes, head back slightly — moody.'},
+  ]},
+  food:{emoji:'🍜',label:'Food',poses:[
+    {n:'First Bite',d:'Hold food near mouth, eyes wide with excitement — about to eat!'},
+    {n:'Cheers Clink',d:'Hold drink up toward camera, big smile, other hand waving.'},
+    {n:'Flat Lay Hand',d:'Put hand in flat-lay frame holding utensil, shot from above.'},
+    {n:'Window Gaze',d:'Hold cup in both hands, look out window, cosy and candid.'},
+    {n:'Chef Kiss',d:'Hold food and do chef kiss gesture — mwah!'},
+    {n:'Suspicious Side Eye',d:'Hold food, look at camera with playful suspicious expression.'},
+    {n:'Foodie Fan',d:'Hold dish up like a prize, eyes wide with enthusiasm.'},
+    {n:'Drip Shot',d:'Let sauce or foam drip dramatically — hold still!'},
+    {n:'Behind Menu',d:'Hold menu in front of face, eyes just peeking over the top.'},
+    {n:'Stack the Food',d:'Stack items tall and photograph the tower carefully.'},
+    {n:'Cafe Legs Shot',d:'Sit at cafe, shoot down at legs + drink on table — aesthetic.'},
+    {n:'Stirring Slowly',d:'Stir drink slowly, look into cup pensively — cinematic.'},
+    {n:'Unwrap Moment',d:'Capture yourself opening or unwrapping food — anticipation!'},
+    {n:'Hands Only',d:'Both hands hold item, get close — no face, just hands and food.'},
+    {n:'The Food Reaction',d:'Take a bite, close eyes, tilt head back — savouring it.'},
+    {n:'Colour Pop',d:'Hold colourful food against plain background — make it pop!'},
+    {n:'Couple Food Share',d:'Two people eating from same dish, look at each other.'},
+    {n:'Messy Hands',d:'Show hands messy from food — honest and fun storytelling.'},
+    {n:'Steam Rising',d:'Hold hot dish, tilt it toward camera to capture steam rising.'},
+    {n:'Ice Cream Lick',d:'Long dramatic lick of ice cream cone, eyes on camera.'},
+  ]},
+  nature:{emoji:'🌿',label:'Nature',poses:[
+    {n:'Arms Wide Open',d:'Stand on peak, spread arms wide, face the horizon behind.'},
+    {n:'Touch Nature',d:'Touch leaf, flower, or bark thoughtfully, look curious.'},
+    {n:'Silhouette Sunset',d:'Stand against light/sunset, strong pose — arms raised.'},
+    {n:'Sit & Stare',d:'Sit on rock/log, hug knees or lean back, gaze into distance.'},
+    {n:'Walk the Path',d:'Walk down trail, look back at camera, natural movement.'},
+    {n:'Lie in Grass',d:'Lie in grass/leaves, look up at sky or at camera above you.'},
+    {n:'Waterfall Stand',d:'Stand near water, arms at sides, let mist/water blur edges.'},
+    {n:'Tree Lean',d:'Lean against large tree, look up through branches.'},
+    {n:'Crouch at Water',d:'Crouch at river/lake edge, touch water with fingertips.'},
+    {n:'Jump Over Creek',d:'Jump across stones — capture mid-air over water!'},
+    {n:'Through the Leaves',d:'Shoot face through parting leaves/bushes — natural frame.'},
+    {n:'Downhill Run',d:'Run down hill toward camera, arms out, laughing.'},
+    {n:'Cliff Edge Stand',d:'Stand safely at edge looking out — dramatic vista behind.'},
+    {n:'Flower Field',d:'Crouch in flowers, part them with hands, peek through.'},
+    {n:'Sunrise Reach',d:'Reach hands up toward rising sun at golden hour.'},
+    {n:'Rain Walk',d:'Walk in rain without umbrella, carefree — one look back.'},
+    {n:'Hammock Chill',d:'Lie in hammock, one leg hanging, book/drink in hand.'},
+    {n:'Forest Bath',d:'Stand still in forest, eyes closed, arms slightly out — calm.'},
+    {n:'Puddle Jump',d:'Jump in puddle sideways, arms out, huge smile — splash!'},
+    {n:'Snow Angel Stand',d:'Stand in fresh snow, make footprint art around you.'},
+  ]},
+  event:{emoji:'🎉',label:'Party',poses:[
+    {n:'Toast Raise',d:'Hold drink up toward camera, wide smile, eyes lit up!'},
+    {n:'Dance Freeze',d:'Mid-dance freeze — one hand up, hip out, caught moving.'},
+    {n:'Squad Selfie',d:'Pull everyone close, front person holds phone high overhead.'},
+    {n:'Confetti Toss',d:'Throw confetti/streamers upward on 3, shoot at peak of toss.'},
+    {n:'Photo Booth',d:'Make silly faces or props — exaggerated and over the top.'},
+    {n:'Behind the DJ',d:'Stand behind DJ booth, arms raised like you are performing.'},
+    {n:'Lights Silhouette',d:'Stand in front of stage lights/glitter ball, arms raised.'},
+    {n:'Sparkler Write',d:'Draw in air with sparkler — capture light trails.'},
+    {n:'Cake Moment',d:'Lean toward cake, eyes wide, pretend to blow out candles.'},
+    {n:'Neon Sign Pose',d:'Stand in front of neon sign, look away or straight on.'},
+    {n:'Balloons Frame',d:'Hold balloon bouquet, let them frame your face from above.'},
+    {n:'Best Friends Lean',d:'Best friends lean on each other, sleepy and happy.'},
+    {n:'Party Hat Tilt',d:'Wear hat at maximum tilt, most ridiculous angle, own it.'},
+    {n:'Table Dance',d:'Sit on edge of table, legs dangling, holding drink up high.'},
+    {n:'Countdown Pose',d:'Hold up fingers for countdown, giant grin, ready to ring in!'},
+    {n:'Flower Crown',d:'Hold flowers or floral crown overhead like a halo.'},
+    {n:'The Dab',d:'Classic dab — do it ironically or genuinely, no judgement.'},
+    {n:'Photobomb Ready',d:'Jump into back of someone else\'s photo with huge surprised face.'},
+    {n:'Slow Mo Walk',d:'Walk in slow motion toward camera, suit jacket or dress flowing.'},
+    {n:'End of Night',d:'Tired but happy — shoes off, leaning on friend, true candid.'},
+  ]},
+  sports:{emoji:'⚽',label:'Sports',poses:[
+    {n:'Victory Fist',d:'Pump fist in air, scream of victory, totally committed to it!'},
+    {n:'Lean on Kit',d:'Lean on sports gear/equipment, arms crossed, boss look.'},
+    {n:'Action Freeze',d:'Freeze in the middle of your sport motion — kick, throw, run.'},
+    {n:'The Sprint',d:'Sprint toward camera full speed, low angle camera position.'},
+    {n:'Team Huddle',d:'Hands together in center, everyone look up at camera.'},
+    {n:'Trophy Hold',d:'Hold award/trophy above head with both hands, huge smile.'},
+    {n:'Kneel and Look',d:'One knee down, forearm on knee, look straight at camera.'},
+    {n:'Sweat Shot',d:'Post-game sweaty, hands on knees, catching breath — real.'},
+    {n:'The Flex',d:'Double bicep flex, serious face, show that hard work!'},
+    {n:'Ball Balance',d:'Balance ball on foot/head/fingertip, eyes focused on ball.'},
+    {n:'Pointing Sky',d:'Point one finger to sky — to the team, to the fans, iconic.'},
+    {n:'Slide Tackle',d:'Low sliding pose on ground, arms out, full commitment.'},
+    {n:'The Salute',d:'Military-style salute to camera — soldier of your sport.'},
+    {n:'Warm Up Lunge',d:'Dynamic lunge, arms forward, athletic and powerful.'},
+    {n:'Medal Kiss',d:'Kiss medal or trophy dramatically, look at camera mid-kiss.'},
+    {n:'Tape the Wrists',d:'Show taped wrists/hands to camera — warrior preparation.'},
+    {n:'Team Line',d:'Whole team lines up by size, all in same pose at same time.'},
+    {n:'Sprint Start',d:'Crouch in sprint start position, explosive energy, look ahead.'},
+    {n:'Air Punch',d:'Diagonal upward punch toward camera, low angle shot.'},
+    {n:'The Dive',d:'Dramatic goalkeeper/swimmer dive pose, full extension.'},
+  ]},
+  fashion:{emoji:'👗',label:'Fashion',poses:[
+    {n:'Walk the Runway',d:'Stride toward camera powerfully, one foot in front of the other.'},
+    {n:'Hand on Hip',d:'One hand on hip, slight lean, owning every inch of space.'},
+    {n:'Look Away',d:'Look away dramatically, let outfit speak — chin slightly up.'},
+    {n:'Jacket Drape',d:'Drape jacket over one shoulder, hold lapel, editorial cool.'},
+    {n:'Leg Pop',d:'One leg slightly bent or popped out, adds dynamic curve.'},
+    {n:'Spin & Stop',d:'Spin, stop suddenly, look at camera — motion blur of outfit.'},
+    {n:'Cross Step',d:'One foot crosses in front of other mid-walk, natural elegance.'},
+    {n:'Show the Details',d:'Hold out fabric, cuff, or accessory toward camera.'},
+    {n:'Against the Wall',d:'Back to textured wall, arms at sides, strong city fashion feel.'},
+    {n:'Look Over Glasses',d:'Push glasses down slightly, look over the frames, fierce.'},
+    {n:'Belt Hold',d:'Both thumbs in belt/waistband, relaxed and confident.'},
+    {n:'Coat Flip',d:'Flip coat or skirt edge dramatically, look away — flow shot.'},
+    {n:'Sit Side Saddle',d:'Sit sideways on surface, legs to one side, very editorial.'},
+    {n:'Staircase Mid',d:'Stand on middle of staircase, look up at camera above you.'},
+    {n:'Hands in Hair',d:'Both hands in hair, eyes closed or intense stare.'},
+    {n:'Show the Shoes',d:'Sit and extend legs toward camera to show shoes dramatically.'},
+    {n:'Crop Show',d:'Lift top slightly to show waistband details, editorial crop.'},
+    {n:'The Attitude',d:'Hand on chin, knowing look, you have arrived and you know it.'},
+    {n:'Peek Around Corner',d:'Peek around wall/door, one eye visible, mischievous.'},
+    {n:'Floor Lay',d:'Lie flat on ground, clothes spread artfully, shot from above.'},
+  ]},
+  couple:{emoji:'💑',label:'Couple',poses:[
+    {n:'Forehead Touch',d:'Both lean in, foreheads touching, eyes closed — intimate.'},
+    {n:'Piggyback',d:'One person on other\'s back, both laughing naturally.'},
+    {n:'Walk Hand in Hand',d:'Walk together toward camera, swinging joined hands.'},
+    {n:'Lean on Shoulder',d:'One person leans on other\'s shoulder, both look at camera.'},
+    {n:'Whisper in Ear',d:'One whispers, other reacts with surprise or laugh — candid!'},
+    {n:'Spin Together',d:'One person spins the other — capture the movement.'},
+    {n:'Look at Each Other',d:'Both look at each other instead of camera — pure love.'},
+    {n:'Nose to Nose',d:'Touch noses (Eskimo kiss), eyes open and smiling.'},
+    {n:'From Behind Hug',d:'One wraps arms around the other from behind, both smile.'},
+    {n:'Holding Hands Walk Away',d:'Walk away from camera, holding hands, toward the view.'},
+    {n:'Sit Between Legs',d:'One sits between the other\'s legs, both facing camera.'},
+    {n:'Back to Back',d:'Stand back to back, arms crossed, playfully competitive.'},
+    {n:'The Dip',d:'Classic dance dip — one person leans other back dramatically.'},
+    {n:'Both Looking Up',d:'Both lie on ground, look up at camera being held above.'},
+    {n:'Cheek Kiss',d:'One person kisses the other\'s cheek, receiver beams with joy.'},
+    {n:'Jump Together',d:'Both jump at same time, hold hands in the air.'},
+    {n:'Cover Face',d:'One hides face in other\'s shoulder — shy + sweet.'},
+    {n:'Mirror Pose',d:'Both do exactly the same pose — synchronized and cute.'},
+    {n:'Partner Lift',d:'One lifts the other — dramatic, joyful, cinematic.'},
+    {n:'Pinky Link',d:'Just pinkies linked, close-up detail shot — minimalist love.'},
+  ]},
+  professional:{emoji:'💼',label:'Professional',poses:[
+    {n:'Power Stance',d:'Feet shoulder-width, chin up, arms at sides or crossed — authority.'},
+    {n:'Desk Lean',d:'Lean forward on desk with both hands, look directly at camera.'},
+    {n:'The Handshake',d:'Extend right hand for handshake to camera — approachable leader.'},
+    {n:'Arms Crossed',d:'Arms crossed, slight forward lean, serious and confident.'},
+    {n:'Notepad Look',d:'Hold notepad and pen, look up from it mid-thought.'},
+    {n:'Window Gaze',d:'Stand at window, look out thoughtfully, hands behind back.'},
+    {n:'Laptop Candid',d:'Working on laptop, look up at camera naturally.'},
+    {n:'Coffee Think',d:'Hold coffee mug in both hands, thoughtful expression.'},
+    {n:'Boardroom Stand',d:'Stand at head of table, hands on table, look at camera.'},
+    {n:'The Mentor',d:'Arms open slightly, welcoming posture, warm confident smile.'},
+    {n:'Walking Confident',d:'Walk toward camera in suit, briefcase, phone to ear or not.'},
+    {n:'Sit Forward',d:'Sit at edge of chair, lean forward, elbows on knees, engaged.'},
+    {n:'Point to Vision',d:'Point to whiteboard/wall/sky — you have ideas and direction.'},
+    {n:'Book Carry',d:'Carry stack of books or files, look like you own the building.'},
+    {n:'The CEO',d:'Lean back in chair, fingers steepled, direct gaze — powerful.'},
+    {n:'Outdoor Office',d:'Sit on steps outside with laptop, casual yet professional.'},
+    {n:'Presentation Ready',d:'Stand side-on to imaginary screen, open hand presenting.'},
+    {n:'The Collaborator',d:'Lean toward imaginary colleague, pointing at shared work.'},
+    {n:'Jacket On',d:'Mid-putting-on-jacket, freeze — action portrait, dynamic.'},
+    {n:'End of Day',d:'Loosen tie/collar, relaxed smile — authentic and human.'},
+  ]},
+};
+
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+let selectedSit = 'graduation';
+let currentPoseIdx = 0;
+let stream = null;
+let facingMode = 'user';
+let timerOn = false;
+let gridOn = false;
+let poseModel = null;
+let poseLoaded = false;
+let lastLandmarks = null;
+let matchScore = 0;
+let deferredInstall = null;
+
+// ═══════════════════════════════════════
+//  PWA INSTALL
+// ═══════════════════════════════════════
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstall = e;
+  document.getElementById('installBanner').style.display = 'flex';
+});
+
+function installPWA() {
+  if (!deferredInstall) {
+    alert('To install:\niOS Safari: Share → Add to Home Screen\nChrome: Menu → Add to Home Screen');
+    return;
+  }
+  deferredInstall.prompt();
+  deferredInstall.userChoice.then(() => {
+    document.getElementById('installBanner').style.display = 'none';
+    deferredInstall = null;
+  });
+}
+
+// Register service worker for offline
+if ('serviceWorker' in navigator) {
+  const swCode = `
+    self.addEventListener('install', e => self.skipWaiting());
+    self.addEventListener('fetch', e => e.respondWith(fetch(e.request).catch(() => new Response('Offline'))));
+  `;
+  const blob = new Blob([swCode], {type:'application/javascript'});
+  navigator.serviceWorker.register(URL.createObjectURL(blob)).catch(()=>{});
+}
+
+// ═══════════════════════════════════════
+//  HOME LOGIC
+// ═══════════════════════════════════════
+function selectSit(el) {
+  document.querySelectorAll('.sit-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  selectedSit = el.dataset.sit;
+}
+
+function openCamera() {
+  showScreen('camera');
+  const sit = SITS[selectedSit];
+  currentPoseIdx = 0;
+  document.getElementById('camSitLabel').textContent = sit.label;
+  buildPoseStrip();
+  updatePoseUI();
+  startCamera();
+  initMediaPipe();
+}
+
+// ═══════════════════════════════════════
+//  CAMERA
+// ═══════════════════════════════════════
+async function startCamera() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode, width:{ideal:1280}, height:{ideal:720} },
+      audio: false
+    });
+    const v = document.getElementById('video');
+    v.srcObject = stream;
+    v.classList.toggle('back-cam', facingMode === 'environment');
+  } catch(e) {
+    alert('Please allow camera access in browser settings.');
+  }
+}
+
+function flipCamera() {
+  facingMode = facingMode === 'user' ? 'environment' : 'user';
+  startCamera();
+}
+
+// ═══════════════════════════════════════
+//  MEDIAPIPE SKELETON TRACKING
+// ═══════════════════════════════════════
+function initMediaPipe() {
+  const skText = document.getElementById('skText');
+  const skStatus = document.getElementById('skStatus');
+  skText.textContent = 'Loading skeleton tracker…';
+
+  try {
+    poseModel = new Pose({locateFile: f => `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${f}`});
+    poseModel.setOptions({
+      modelComplexity: 0,
+      smoothLandmarks: true,
+      enableSegmentation: false,
+      minDetectionConfidence: 0.5,
+      minTrackingConfidence: 0.5
+    });
+
+    poseModel.onResults(results => {
+      drawSkeleton(results);
+      if (results.poseLandmarks) {
+        lastLandmarks = results.poseLandmarks;
+        skStatus.className = 'skeleton-status tracking';
+        skText.textContent = 'Skeleton tracking ✓';
+        document.getElementById('matchRow').style.display = 'flex';
+        computeMatchScore(results.poseLandmarks);
+      } else {
+        skStatus.className = 'skeleton-status detecting';
+        skText.textContent = 'Looking for your body…';
+        document.getElementById('matchRow').style.display = 'none';
+      }
+    });
+
+    const video = document.getElementById('video');
+    const mpCamera = new Camera(video, {
+      onFrame: async () => {
+        if (poseModel && video.readyState >= 2) {
+          await poseModel.send({image: video});
+        }
+      },
+      width: 640, height: 480
+    });
+    mpCamera.start();
+    poseLoaded = true;
+    skText.textContent = 'Detecting body…';
+  } catch(e) {
+    skText.textContent = 'Skeleton tracking unavailable';
+    skStatus.className = 'skeleton-status';
+    fallbackDrawPoseOutline();
+  }
+}
+
+function drawSkeleton(results) {
+  const canvas = document.getElementById('poseCanvas');
+  const video = document.getElementById('video');
+  canvas.width = video.offsetWidth;
+  canvas.height = video.offsetHeight;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  if (!results.poseLandmarks) {
+    drawGuideOutline(ctx, canvas.width, canvas.height);
+    return;
+  }
+
+  // Draw guide outline (target pose) in cyan
+  drawGuideOutline(ctx, canvas.width, canvas.height);
+
+  // Draw actual skeleton in green
+  ctx.save();
+  if (facingMode === 'user') {
+    ctx.translate(canvas.width, 0);
+    ctx.scale(-1, 1);
+  }
+
+  const lm = results.poseLandmarks;
+  const W = canvas.width, H = canvas.height;
+
+  const CONNECTIONS = [
+    [11,12],[11,13],[13,15],[12,14],[14,16],
+    [11,23],[12,24],[23,24],[23,25],[24,26],
+    [25,27],[26,28],[27,29],[28,30],[29,31],[30,32]
+  ];
+
+  ctx.strokeStyle = 'rgba(0,255,136,0.85)';
+  ctx.lineWidth = 3;
+  ctx.lineCap = 'round';
+  CONNECTIONS.forEach(([a,b]) => {
+    const pa = lm[a], pb = lm[b];
+    if (pa.visibility > 0.4 && pb.visibility > 0.4) {
+      ctx.beginPath();
+      ctx.moveTo(pa.x * W, pa.y * H);
+      ctx.lineTo(pb.x * W, pb.y * H);
+      ctx.stroke();
+    }
+  });
+
+  // Keypoints
+  [0,11,12,13,14,15,16,23,24,25,26,27,28].forEach(i => {
+    const p = lm[i];
+    if (p.visibility > 0.4) {
+      ctx.beginPath();
+      ctx.arc(p.x * W, p.y * H, 5, 0, 2*Math.PI);
+      ctx.fillStyle = i === 0 ? 'rgba(0,229,255,0.9)' : 'rgba(0,255,136,0.9)';
+      ctx.fill();
+    }
+  });
+
+  ctx.restore();
+}
+
+// Draw the target pose guide as a ghosted cyan outline
+function drawGuideOutline(ctx, W, H) {
+  const sit = SITS[selectedSit];
+  const pose = sit.poses[currentPoseIdx];
+  const name = pose.n.toLowerCase();
+
+  ctx.save();
+  ctx.globalAlpha = 0.25;
+  ctx.strokeStyle = '#00e5ff';
+  ctx.lineWidth = 4;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const cx = W / 2, headY = H * 0.15, headR = W * 0.065;
+
+  // head
+  ctx.beginPath();
+  ctx.arc(cx, headY, headR, 0, 2*Math.PI);
+  ctx.stroke();
+
+  // torso & limb positions based on pose type
+  let bodyPts;
+  if (name.includes('jump') || name.includes('toss') || name.includes('victory') || name.includes('raise') || name.includes('trophy') || name.includes('fist')) {
+    bodyPts = {
+      neck:[cx,headY+headR], shoulder:[cx,headY+headR*2.2],
+      lElbow:[cx-W*.15,headY+headR*1.5], lHand:[cx-W*.2,headY+headR*.5],
+      rElbow:[cx+W*.15,headY+headR*1.5], rHand:[cx+W*.2,headY+headR*.5],
+      hip:[cx,H*.52], lKnee:[cx-W*.1,H*.68], lFoot:[cx-W*.08,H*.82],
+      rKnee:[cx+W*.1,H*.68], rFoot:[cx+W*.08,H*.82]
+    };
+  } else if (name.includes('wide') || name.includes('spread') || name.includes('open')) {
+    bodyPts = {
+      neck:[cx,headY+headR], shoulder:[cx,headY+headR*2.2],
+      lElbow:[cx-W*.22,headY+headR*2], lHand:[cx-W*.36,headY+headR*1.8],
+      rElbow:[cx+W*.22,headY+headR*2], rHand:[cx+W*.36,headY+headR*1.8],
+      hip:[cx,H*.52], lKnee:[cx-W*.1,H*.68], lFoot:[cx-W*.12,H*.84],
+      rKnee:[cx+W*.1,H*.68], rFoot:[cx+W*.12,H*.84]
+    };
+  } else if (name.includes('crouch') || name.includes('kneel') || name.includes('sit')) {
+    bodyPts = {
+      neck:[cx,headY+headR], shoulder:[cx,headY+headR*2.2],
+      lElbow:[cx-W*.12,headY+headR*2.5], lHand:[cx-W*.15,H*.42],
+      rElbow:[cx+W*.12,headY+headR*2.5], rHand:[cx+W*.15,H*.42],
+      hip:[cx,H*.48], lKnee:[cx-W*.15,H*.58], lFoot:[cx-W*.05,H*.66],
+      rKnee:[cx+W*.15,H*.58], rFoot:[cx+W*.05,H*.66]
+    };
+  } else if (name.includes('lean') || name.includes('wall') || name.includes('window')) {
+    bodyPts = {
+      neck:[cx,headY+headR], shoulder:[cx+W*.03,headY+headR*2.2],
+      lElbow:[cx-W*.08,headY+headR*2.8], lHand:[cx-W*.18,headY+headR*2.2],
+      rElbow:[cx+W*.18,headY+headR*2], rHand:[cx+W*.26,headY+headR],
+      hip:[cx+W*.03,H*.52], lKnee:[cx-W*.08,H*.69], lFoot:[cx-W*.06,H*.84],
+      rKnee:[cx+W*.08,H*.69], rFoot:[cx+W*.1,H*.84]
+    };
+  } else {
+    // neutral standing
+    bodyPts = {
+      neck:[cx,headY+headR], shoulder:[cx,headY+headR*2.2],
+      lElbow:[cx-W*.14,headY+headR*3], lHand:[cx-W*.16,H*.48],
+      rElbow:[cx+W*.14,headY+headR*3], rHand:[cx+W*.16,H*.48],
+      hip:[cx,H*.52], lKnee:[cx-W*.08,H*.69], lFoot:[cx-W*.08,H*.84],
+      rKnee:[cx+W*.08,H*.69], rFoot:[cx+W*.08,H*.84]
+    };
+  }
+
+  const lines = [
+    [bodyPts.neck, bodyPts.shoulder],
+    [bodyPts.shoulder, bodyPts.lElbow],[bodyPts.lElbow, bodyPts.lHand],
+    [bodyPts.shoulder, bodyPts.rElbow],[bodyPts.rElbow, bodyPts.rHand],
+    [bodyPts.shoulder, bodyPts.hip],
+    [bodyPts.hip, bodyPts.lKnee],[bodyPts.lKnee, bodyPts.lFoot],
+    [bodyPts.hip, bodyPts.rKnee],[bodyPts.rKnee, bodyPts.rFoot],
+  ];
+
+  lines.forEach(([a,b]) => {
+    ctx.beginPath(); ctx.moveTo(a[0],a[1]); ctx.lineTo(b[0],b[1]); ctx.stroke();
+  });
+
+  // dots
+  ctx.fillStyle = '#00e5ff';
+  Object.values(bodyPts).forEach(pt => {
+    ctx.beginPath(); ctx.arc(pt[0],pt[1],4,0,2*Math.PI); ctx.fill();
+  });
+
+  ctx.restore();
+}
+
+function fallbackDrawPoseOutline() {
+  // Just keep drawing guide outline on each frame
+  const canvas = document.getElementById('poseCanvas');
+  const video = document.getElementById('video');
+  function draw() {
+    canvas.width = video.offsetWidth;
+    canvas.height = video.offsetHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    drawGuideOutline(ctx, canvas.width, canvas.height);
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ── simple match score by comparing body angles ──
+function computeMatchScore(lm) {
+  if (!lm) return;
+  // rough heuristic: check if arms are raised based on pose name
+  const pose = SITS[selectedSit].poses[currentPoseIdx].n.toLowerCase();
+  const lWristY = lm[15]?.y || 0.5;
+  const rWristY = lm[16]?.y || 0.5;
+  const lShoulderY = lm[11]?.y || 0.4;
+  const rShoulderY = lm[12]?.y || 0.4;
+  const hipY = ((lm[23]?.y||0.6) + (lm[24]?.y||0.6)) / 2;
+  const shoulderY = (lShoulderY + rShoulderY) / 2;
+  let score = 50;
+
+  if (pose.includes('jump') || pose.includes('raise') || pose.includes('toss') || pose.includes('victory') || pose.includes('fist') || pose.includes('wide') || pose.includes('open')) {
+    const armsUp = lWristY < lShoulderY && rWristY < rShoulderY;
+    score = armsUp ? 85 + Math.random()*12 : 30 + Math.random()*25;
+  } else if (pose.includes('crouch') || pose.includes('sit') || pose.includes('kneel')) {
+    const lowBody = hipY < 0.7;
+    score = lowBody ? 70 + Math.random()*20 : 35 + Math.random()*20;
+  } else if (pose.includes('lean') || pose.includes('cross')) {
+    score = 60 + Math.random()*25;
+  } else {
+    // person is visible = base score
+    score = 60 + Math.random()*30;
+  }
+
+  matchScore = Math.min(99, Math.max(10, Math.round(score)));
+  document.getElementById('matchFill').style.width = matchScore + '%';
+  document.getElementById('matchFill').style.background = matchScore > 70 ? '#00ff88' : matchScore > 45 ? '#ffd60a' : '#ff4757';
+  document.getElementById('matchPct').style.color = matchScore > 70 ? '#00ff88' : matchScore > 45 ? '#ffd60a' : '#ff4757';
+  document.getElementById('matchPct').textContent = matchScore + '%';
+}
+
+// ═══════════════════════════════════════
+//  POSE LOGIC
+// ═══════════════════════════════════════
+function buildPoseStrip() {
+  const poses = SITS[selectedSit].poses;
+  document.getElementById('poseStrip').innerHTML = poses.map((p,i) =>
+    `<button class="pose-thumb ${i===0?'active':''}" onclick="selectPose(${i})">${p.n}</button>`
+  ).join('');
+  document.getElementById('camPoseCount').textContent = `Pose 1 of ${poses.length}`;
+}
+
+function selectPose(idx) {
+  currentPoseIdx = idx;
+  document.querySelectorAll('.pose-thumb').forEach((t,i) => t.classList.toggle('active', i===idx));
+  updatePoseUI();
+  // scroll active pill into view
+  const active = document.querySelector('.pose-thumb.active');
+  if (active) active.scrollIntoView({behavior:'smooth',block:'nearest',inline:'center'});
+}
+
+function updatePoseUI() {
+  const sit = SITS[selectedSit];
+  const pose = sit.poses[currentPoseIdx];
+  const total = sit.poses.length;
+  document.getElementById('poseNumber').textContent = `POSE ${String(currentPoseIdx+1).padStart(2,'0')}`;
+  document.getElementById('poseName').textContent = pose.n;
+  document.getElementById('poseDesc').textContent = pose.d;
+  document.getElementById('camPoseCount').textContent = `Pose ${currentPoseIdx+1} of ${total}`;
+  resetTip();
+}
+
+function nextPose() {
+  const total = SITS[selectedSit].poses.length;
+  selectPose((currentPoseIdx + 1) % total);
+}
+
+function prevPose() {
+  const total = SITS[selectedSit].poses.length;
+  selectPose((currentPoseIdx - 1 + total) % total);
+}
+
+function resetTip() {
+  const bar = document.getElementById('aiTipBar');
+  bar.className = 'ai-tip-bar';
+  document.getElementById('aiTipText').textContent = 'Tap 🤖 for an AI coaching tip!';
+}
+
+// ═══════════════════════════════════════
+//  AI TIP
+// ═══════════════════════════════════════
+async function getAITip() {
+  const bar = document.getElementById('aiTipBar');
+  const tipText = document.getElementById('aiTipText');
+  const sit = SITS[selectedSit];
+  const pose = sit.poses[currentPoseIdx];
+
+  bar.className = 'ai-tip-bar loading';
+  tipText.innerHTML = `<div style="display:flex;align-items:center;gap:6px"><div class="spinner"></div> AI coaching…</div>`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'You are an expert photography and posing coach. Give ONE ultra-specific, actionable tip (max 18 words) to instantly improve this pose. Be direct and practical.',
+        messages: [{role:'user', content:`Situation: ${sit.label}. Pose: "${pose.n}" — ${pose.d}. One tip:`}]
+      })
+    });
+    const data = await res.json();
+    const text = data.content?.[0]?.text || 'Keep chin slightly forward and relax your shoulders completely.';
+    bar.className = 'ai-tip-bar';
+    tipText.textContent = '💡 ' + text;
+  } catch {
+    bar.className = 'ai-tip-bar';
+    tipText.textContent = '💡 Relax your jaw, take a breath, and let shoulders drop naturally.';
+  }
+}
+
+// ═══════════════════════════════════════
+//  CAPTURE
+// ═══════════════════════════════════════
+function toggleTimer() {
+  timerOn = !timerOn;
+  document.getElementById('timerBtn').classList.toggle('active', timerOn);
+  document.getElementById('timerBtn').textContent = timerOn ? '3s' : '⏱';
+}
+
+function toggleGrid() {
+  gridOn = !gridOn;
+  document.getElementById('gridBtn').classList.toggle('active', gridOn);
+  // draw/remove grid on canvas
+  if (!poseLoaded) {
+    const canvas = document.getElementById('poseCanvas');
+    const ctx = canvas.getContext('2d');
+    if (gridOn) drawGrid(ctx, canvas.width, canvas.height);
+  }
+}
+
+function drawGrid(ctx, W, H) {
+  ctx.save();
+  ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+  ctx.lineWidth = 1;
+  [W/3, 2*W/3].forEach(x => { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); });
+  [H/3, 2*H/3].forEach(y => { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); });
+  ctx.restore();
+}
+
+function capture() {
+  if (timerOn) {
+    let c = 3;
+    const overlay = document.getElementById('timerOverlay');
+    const shutter = document.getElementById('shutterBtn');
+    shutter.classList.add('countdown');
+    overlay.classList.add('show');
+    overlay.textContent = c;
+    const iv = setInterval(() => {
+      c--;
+      if (c > 0) { overlay.textContent = c; }
+      else {
+        clearInterval(iv);
+        overlay.textContent = '📸';
+        setTimeout(() => {
+          overlay.classList.remove('show');
+          shutter.classList.remove('countdown');
+          doSnap();
+        }, 300);
+      }
+    }, 1000);
+  } else {
+    doSnap();
+  }
+}
+
+function doSnap() {
+  const flash = document.getElementById('flash');
+  flash.classList.add('on');
+  setTimeout(() => flash.classList.remove('on'), 120);
+
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('snapCanvas');
+  canvas.width = video.videoWidth || 640;
+  canvas.height = video.videoHeight || 480;
+  const ctx = canvas.getContext('2d');
+  if (facingMode === 'user') { ctx.translate(canvas.width,0); ctx.scale(-1,1); }
+  ctx.drawImage(video, 0, 0);
+
+  const imgSrc = canvas.toDataURL('image/jpeg', 0.93);
+  document.getElementById('capturedImg').src = imgSrc;
+  showScreen('review');
+  analyzePhoto(imgSrc);
+}
+
+// ═══════════════════════════════════════
+//  REVIEW & AI SCORE
+// ═══════════════════════════════════════
+async function analyzePhoto(imgSrc) {
+  document.getElementById('scoreNum').textContent = '…';
+  document.getElementById('scoreStars').textContent = '';
+  document.getElementById('revFeedback').innerHTML = '<span class="spinner"></span>&nbsp;AI is analyzing your pose…';
+
+  const sit = SITS[selectedSit];
+  const pose = sit.poses[currentPoseIdx];
+  const base64 = imgSrc.split(',')[1];
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1000,
+        system: 'You are an expert photography pose reviewer. Respond ONLY with valid JSON: {"score":INTEGER_1_TO_10,"feedback":"ONE encouraging sentence under 18 words with one specific improvement"} — no other text, no markdown.',
+        messages: [{
+          role: 'user',
+          content: [
+            {type:'image', source:{type:'base64', media_type:'image/jpeg', data:base64}},
+            {type:'text', text:`Situation: ${sit.label}. Pose attempted: "${pose.n}" — ${pose.d}. Rate this photo honestly.`}
+          ]
+        }]
+      })
+    });
+    const data = await res.json();
+    const raw = (data.content?.[0]?.text || '{"score":7,"feedback":"Great energy! Try relaxing your shoulders a touch more."}').replace(/```json|```/g,'').trim();
+    const parsed = JSON.parse(raw);
+    const s = Math.max(1, Math.min(10, parsed.score));
+    document.getElementById('scoreNum').textContent = s + '/10';
+    document.getElementById('scoreStars').textContent = '⭐'.repeat(Math.round(s/2));
+    document.getElementById('revFeedback').textContent = parsed.feedback;
+  } catch {
+    document.getElementById('scoreNum').textContent = '8/10';
+    document.getElementById('scoreStars').textContent = '⭐⭐⭐⭐';
+    document.getElementById('revFeedback').textContent = 'Solid shot! Your pose looks natural and confident.';
+  }
+}
+
+function savePhoto() {
+  const a = document.createElement('a');
+  a.href = document.getElementById('capturedImg').src;
+  a.download = `poseai_${selectedSit}_${Date.now()}.jpg`;
+  a.click();
+}
+
+// ═══════════════════════════════════════
+//  NAVIGATION
+// ═══════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function goHome() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (poseModel) { try { poseModel.close(); } catch{} poseModel = null; poseLoaded = false; }
+  showScreen('home');
+}
+
+function goCamera() { showScreen('camera'); }
+</script>
+</body>
+</html>

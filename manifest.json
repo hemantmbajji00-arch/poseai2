@@ -1,0 +1,17 @@
+{
+  "name": "PoseAI Camera",
+  "short_name": "PoseAI",
+  "description": "AI-powered pose guide camera app",
+  "start_url": "./pose-camera-pro.html",
+  "display": "fullscreen",
+  "orientation": "portrait",
+  "background_color": "#0a0a0f",
+  "theme_color": "#7c3aed",
+  "icons": [
+    {
+      "src": "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 192 192'><rect width='192' height='192' rx='40' fill='%237c3aed'/><text y='130' x='30' font-size='120'>📸</text></svg>",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    }
+  ]
+}
